@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quizgame - Phạm Ngọc Thái</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Confetti JS -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --quiz-purple: #46178F;
+            --quiz-purple-dark: #321066;
+            --quiz-teal: #00E5A3;
+            --quiz-yellow: #FFD000;
+            --quiz-pink: #FF3385;
+            --quiz-blue: #2D9CDB;
+            --quiz-red: #E21B3C;
+            --quiz-green: #26890C;
+        }
+
+        body {
+            background-color: var(--quiz-purple);
+            color: #ffffff;
+            font-family: 'Fredoka', sans-serif;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at center, #5A1EAA 0%, #46178F 100%);
+            min-height: 100vh;
+        }
+
+        /* 3D Buttons */
+        .btn-3d {
+            transition: all 0.1s ease-in-out;
+            position: relative;
+            top: 0;
+        }
+        .btn-3d:active:not(:disabled) {
+            top: 4px;
+            box-shadow: 0 0px 0 0 transparent !important;
+        }
+        .btn-3d:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            top: 4px;
+        }
+
+        .btn-teal {
+            background-color: var(--quiz-teal);
+            color: #000;
+            box-shadow: 0 6px 0 0 #00A676;
+        }
+        
+        .btn-yellow {
+            background-color: var(--quiz-yellow);
+            color: #000;
+            box-shadow: 0 6px 0 0 #CC9900;
+        }
+
+        .btn-pink {
+            background-color: var(--quiz-pink);
+            color: #fff;
+            box-shadow: 0 6px 0 0 #CC0055;
+        }
+
+        .btn-purple {
+            background-color: var(--quiz-purple-dark);
+            color: #fff;
+            box-shadow: 0 6px 0 0 #1D0A3D;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        /* PIN Inputs */
+        .pin-input {
+            width: 45px;
+            height: 55px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            background: #fff;
+            border: 2px solid #ccc;
+            color: #000;
+            border-radius: 12px;
+            transition: all 0.2s;
+            box-shadow: inset 0 3px 5px rgba(0,0,0,0.1);
+        }
+        .pin-input:focus {
+            outline: none;
+            border-color: var(--quiz-teal);
+            box-shadow: 0 0 0 4px rgba(0, 229, 163, 0.3), inset 0 3px 5px rgba(0,0,0,0.1);
+        }
+
+        /* Modals & Panels */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .white-panel {
+            background: #ffffff;
+            color: #333;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* Avatars */
+        .avatar-option {
+            font-size: 2.5rem;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 16px;
+            border: 3px solid transparent;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: #f0f0f0;
+        }
+        .avatar-option:hover {
+            transform: scale(1.15) translateY(-5px);
+        }
+        .avatar-option.selected {
+            border-color: var(--quiz-teal);
+            background: #e6fff7;
+            transform: scale(1.15) translateY(-5px);
+            animation: bounce 0.5s;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1.15) translateY(-5px); }
+            50% { transform: scale(1.15) translateY(-15px); }
+        }
+
+        /* Lobby Cards */
+        .lobby-card {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        
+        @keyframes popIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Answer Buttons (A, B, C, D colors) */
+        .ans-0 { background-color: var(--quiz-red); box-shadow: 0 6px 0 0 #A0132A; color: white;}
+        .ans-1 { background-color: var(--quiz-blue); box-shadow: 0 6px 0 0 #1D6FA5; color: white;}
+        .ans-2 { background-color: var(--quiz-yellow); box-shadow: 0 6px 0 0 #B29100; color: black;}
+        .ans-3 { background-color: var(--quiz-green); box-shadow: 0 6px 0 0 #195908; color: white;}
+        
+        .answer-btn {
+            border-radius: 16px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.1s ease-in-out;
+            padding: 20px;
+        }
+        .answer-btn:active:not(:disabled) {
+            top: 4px;
+            box-shadow: 0 0px 0 0 transparent !important;
+        }
+        .answer-btn:disabled {
+            opacity: 0.9;
+            cursor: not-allowed;
+            top: 4px;
+            box-shadow: 0 0px 0 0 transparent !important;
+            filter: grayscale(80%);
+        }
+        .answer-btn.correct-show {
+            filter: grayscale(0%);
+            border: 4px solid #fff;
+            animation: pulse-correct 1s infinite;
+        }
+        .answer-btn.wrong-show {
+            filter: grayscale(0%);
+            animation: shake 0.5s;
+        }
+
+        @keyframes pulse-correct {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        /* Energy Bar Timer */
+        .energy-bar-container {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .energy-bar-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #00E5A3, #FFD000, #FF3385);
+            background-size: 200% 100%;
+            transition: width 1s linear;
+        }
+        .energy-bar-fill.warning {
+            background: var(--quiz-red);
+            animation: pulse-bar 0.5s infinite alternate;
+        }
+
+        @keyframes pulse-bar {
+            from { opacity: 1; }
+            to { opacity: 0.5; }
+        }
+
+        .hidden-view { display: none !important; }
+        
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="flex flex-col relative">
+
+    <!-- Audio Player for Lobby -->
+    <audio id="lobby-audio" loop preload="auto">
+        <!-- Placeholder generic happy tune link, can be replaced -->
+        <source src="https://assets.mixkit.co/music/preview/mixkit-happy-times-158.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Header -->
+    <header class="p-4 flex justify-between items-center z-50 relative bg-black/20 backdrop-blur-md">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="app.navigate('home')">
+            <div class="w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center text-3xl font-black text-[var(--quiz-purple)] rotate-[-5deg]">
+                Q
+            </div>
+            <h1 class="text-3xl font-black tracking-wide hidden sm:block text-white" style="-webkit-text-stroke: 1px rgba(0,0,0,0.2);">Quizgame</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- Audio Toggle -->
+            <button id="btn-audio-toggle" onclick="app.toggleAudio()" class="w-10 h-10 rounded-full btn-purple btn-3d text-lg hidden-view">
+                <i class="fas fa-volume-up" id="audio-icon"></i>
+            </button>
+            
+            <button id="btn-login-header" onclick="app.showLoginModal()" class="px-5 py-2 rounded-xl btn-purple btn-3d font-bold text-sm">
+                Đăng nhập Giảng viên
+            </button>
+            <button id="btn-logout-header" onclick="app.logout()" class="px-5 py-2 rounded-xl btn-pink btn-3d font-bold text-sm hidden-view">
+                Đăng xuất <span id="host-name-display" class="ml-1 font-normal opacity-80"></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 relative w-full max-w-7xl mx-auto" id="main-container">
+        
+        <!-- ================= VIEW: HOME ================= -->
+        <div id="view-home" class="view-section w-full flex flex-col items-center animate-fade-in my-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-5xl md:text-7xl font-black mb-4 text-white" style="text-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                    Sẵn sàng thử thách?
+                </h2>
+                <p class="text-white/80 text-xl font-semibold">Nền tảng thi trắc nghiệm trực tuyến thời gian thực</p>
+            </div>
+            <button onclick="app.showJoinModal()" class="px-12 py-5 text-2xl font-black rounded-2xl btn-teal btn-3d tracking-wider animate-bounce hover:animate-none">
+                VÀO CHƠI GAME
+            </button>
+        </div>
+
+        <!-- ================= VIEW: HOST DASHBOARD ================= -->
+        <div id="view-host-dashboard" class="view-section w-full hidden-view animate-fade-in flex flex-col h-full my-4">
+            
+            <!-- Host Top Bar -->
+            <div class="flex flex-col md:flex-row justify-between items-center bg-white rounded-3xl p-6 shadow-2xl mb-6 gap-6 relative">
+                
+                <div class="flex flex-col items-center text-center">
+                    <p class="text-gray-500 font-bold uppercase tracking-widest text-sm mb-1">Mã PIN Phòng Thi</p>
+                    <div class="text-7xl md:text-8xl font-black text-[var(--quiz-purple)] tracking-widest leading-none" id="host-pin-display">
+                        ------
+                    </div>
+                    <button onclick="app.generateNewPin()" class="mt-4 px-4 py-2 rounded-xl btn-purple btn-3d text-sm font-bold flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> Đổi PIN mới
+                    </button>
+                </div>
+                
+                <div class="flex flex-col items-center justify-center">
+                    <button id="host-start-btn" onclick="app.hostStartGame()" class="px-10 py-6 text-2xl md:text-3xl font-black rounded-2xl btn-teal btn-3d tracking-wider whitespace-nowrap" disabled>
+                        🚀 BẮT ĐẦU LÀM BÀI
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-6 flex-grow min-h-[500px]">
+                
+                <!-- Left: Players Tab -->
+                <div class="flex-[2] glass-panel p-6 flex flex-col">
+                    <div class="flex justify-between items-center mb-6 border-b border-white/20 pb-4">
+                        <h2 class="text-2xl font-bold">Danh sách Sinh viên</h2>
+                        <div class="bg-white/20 px-4 py-1 rounded-full font-bold">
+                            <span id="host-player-count">0</span> người
+                        </div>
+                    </div>
+                    
+                    <div id="host-tab-players" class="flex-1 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 content-start">
+                        <!-- Player cards injected here -->
+                    </div>
+                </div>
+
+                <!-- Right: Questions Bank -->
+                <div class="flex-1 glass-panel p-6 flex flex-col bg-black/20">
+                    <div class="flex justify-between items-center mb-6 border-b border-white/20 pb-4">
+                        <h2 class="text-2xl font-bold">Ngân hàng Câu hỏi</h2>
+                        <span class="bg-[var(--quiz-pink)] px-3 py-1 rounded-full text-sm font-bold shadow-md" id="host-q-count">0 câu</span>
+                    </div>
+                    <div class="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1" id="host-questions-list">
+                        <!-- Questions injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: STUDENT LOBBY ================= -->
+        <div id="view-student-lobby" class="view-section w-full hidden-view animate-fade-in flex flex-col h-full my-4">
+            <div class="text-center mb-8 bg-white/10 p-6 rounded-3xl backdrop-blur-sm max-w-2xl mx-auto w-full border border-white/20 shadow-2xl">
+                <p class="text-[var(--quiz-teal)] font-bold text-xl mb-2"><i class="fas fa-check-circle mr-2"></i>Đã vào phòng thành công!</p>
+                <h2 class="text-3xl font-black mb-4">Hãy đợi Giảng viên bắt đầu...</h2>
+                <div class="flex justify-center space-x-3 mb-6">
+                    <div class="w-4 h-4 bg-white rounded-full animate-bounce"></div>
+                    <div class="w-4 h-4 bg-white rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-4 h-4 bg-white rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                </div>
+                
+                <div class="inline-flex items-center gap-4 bg-black/30 p-4 rounded-2xl">
+                    <div class="text-6xl" id="lobby-student-avatar">😎</div>
+                    <div class="text-left">
+                        <div class="text-gray-300 text-sm font-bold uppercase">Bạn</div>
+                        <div class="text-2xl font-bold" id="lobby-student-name">Tên Sinh Viên</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-grow glass-panel p-6 max-w-5xl mx-auto w-full">
+                <div class="flex justify-between items-center mb-6 border-b border-white/20 pb-2">
+                    <h3 class="font-bold text-xl">Các bạn cùng lớp</h3>
+                    <div class="bg-white/20 px-3 py-1 rounded-full text-sm font-bold">
+                        <span id="lobby-player-count">1</span> người
+                    </div>
+                </div>
+                
+                <div id="lobby-players-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 content-start">
+                    <!-- Classmates injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: COUNTDOWN TO START ================= -->
+        <div id="view-game-countdown" class="view-section w-full hidden-view animate-fade-in flex flex-col items-center justify-center absolute inset-0 z-40 bg-[var(--quiz-purple)]">
+            <h2 class="text-4xl md:text-6xl font-black mb-8 text-white text-center">Sẵn sàng!</h2>
+            <div class="text-[200px] font-black text-[var(--quiz-yellow)] drop-shadow-[0_10px_0_#CC9900] animate-bounce" id="game-countdown-number" style="line-height: 1;">3</div>
+        </div>
+
+        <!-- ================= VIEW: GAME (QUESTION) ================= -->
+        <div id="view-game" class="view-section w-full hidden-view animate-fade-in flex flex-col h-[85vh] max-w-5xl mx-auto">
+            
+            <!-- Game Header -->
+            <div class="flex justify-between items-center mb-4 bg-black/20 p-4 rounded-2xl backdrop-blur-sm">
+                <div class="font-bold text-xl bg-white/20 px-4 py-2 rounded-xl">
+                    Câu <span id="game-q-current">1</span> / <span id="game-q-total">5</span>
+                </div>
+                <div class="flex items-center gap-3 bg-white/20 px-4 py-2 rounded-xl">
+                    <span id="game-player-avatar" class="text-2xl"></span> 
+                    <span id="game-player-name" class="font-bold hidden sm:inline"></span>
+                    <div class="bg-black/40 px-3 py-1 rounded-lg">
+                        <span id="game-player-score" class="font-black text-[var(--quiz-teal)]">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Energy Bar Timer -->
+            <div class="energy-bar-container mb-6 shadow-inner">
+                <div class="energy-bar-fill" id="game-timer-bar"></div>
+            </div>
+
+            <!-- Question -->
+            <div class="white-panel p-8 mb-6 text-center min-h-[150px] flex items-center justify-center relative shadow-[0_10px_0_0_rgba(0,0,0,0.1)]">
+                <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-[var(--quiz-pink)] text-white font-black px-6 py-2 rounded-full border-4 border-white shadow-md z-10 text-xl" id="game-timer-text">
+                    15
+                </div>
+                <h2 class="text-2xl md:text-4xl font-bold leading-relaxed text-[var(--quiz-purple-dark)]" id="game-question-text">
+                    Đang tải câu hỏi...
+                </h2>
+            </div>
+
+            <!-- Answers -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow" id="game-answers-grid">
+                <!-- Buttons injected here -->
+            </div>
+
+            <!-- Feedback Overlay (Correct/Wrong) -->
+            <div id="game-feedback" class="absolute inset-0 flex items-center justify-center z-50 hidden-view bg-black/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 rounded-3xl">
+                <div class="text-center transform scale-50 transition-transform duration-300 bg-white p-10 rounded-3xl shadow-2xl" id="game-feedback-content">
+                    <div id="game-feedback-icon" class="text-8xl mb-4"></div>
+                    <div id="game-feedback-text" class="text-5xl font-black mb-2 uppercase"></div>
+                    <div id="game-feedback-points" class="text-3xl font-bold bg-gray-100 inline-block px-6 py-2 rounded-full mt-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: LEADERBOARD ================= -->
+        <div id="view-leaderboard" class="view-section w-full hidden-view animate-fade-in flex flex-col items-center justify-center h-full max-w-3xl mx-auto my-4">
+            
+            <div class="text-center mb-6">
+                <h2 class="text-5xl font-black mb-2 text-[var(--quiz-yellow)] drop-shadow-md">Bảng Xếp Hạng</h2>
+                <p class="text-white/80 font-bold text-xl" id="lb-subtitle">Top 5 Sinh viên xuất sắc nhất</p>
+            </div>
+
+            <div class="w-full white-panel p-2 sm:p-6 mb-8 bg-opacity-95">
+                <div class="space-y-3" id="lb-list">
+                    <!-- Leaderboard items injected here -->
+                </div>
+            </div>
+
+            <div class="text-center bg-black/30 p-6 rounded-3xl backdrop-blur-sm" id="lb-next-info">
+                <p class="text-white/80 font-bold text-lg mb-3">Câu hỏi tiếp theo sau</p>
+                <div class="text-5xl font-black text-[var(--quiz-teal)]" id="lb-timer">3</div>
+            </div>
+            
+            <div class="text-center hidden-view bg-black/30 p-8 rounded-3xl backdrop-blur-sm" id="lb-final-info">
+                <h3 class="text-4xl font-black text-[var(--quiz-teal)] mb-6">🎉 Trò chơi kết thúc! 🎉</h3>
+                <button onclick="app.exitGame()" class="px-8 py-4 rounded-xl btn-pink btn-3d font-black text-xl">Thoát về trang chủ</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="p-4 text-center text-white/50 font-semibold text-sm mt-auto relative z-10">
+        Phạm Ngọc Thái &copy; 2026 | Quizizz Style Online Game
+    </footer>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Host Login Modal -->
+    <div id="modal-login" class="fixed inset-0 bg-[var(--quiz-purple-dark)]/90 z-[100] flex items-center justify-center hidden-view backdrop-blur-sm">
+        <div class="white-panel p-8 w-full max-w-md animate-fade-in mx-4 relative border-4 border-[var(--quiz-purple)]">
+            <button onclick="app.closeModals()" class="absolute -top-4 -right-4 w-10 h-10 bg-[var(--quiz-red)] text-white rounded-full font-bold shadow-lg border-2 border-white hover:scale-110 transition"><i class="fas fa-times"></i></button>
+            
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-[var(--quiz-purple)] text-white rounded-xl mx-auto flex items-center justify-center text-4xl mb-4 shadow-md rotate-3">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <h2 class="text-2xl font-black text-gray-800">Đăng nhập Giảng viên</h2>
+            </div>
+            
+            <form id="form-login" onsubmit="app.handleLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-500 mb-1">Tài khoản</label>
+                    <input type="text" id="login-username" class="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-3 text-gray-800 font-bold focus:border-[var(--quiz-purple)] outline-none transition" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-500 mb-1">Mật khẩu</label>
+                    <input type="password" id="login-password" class="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-3 text-gray-800 font-bold focus:border-[var(--quiz-purple)] outline-none transition" required>
+                </div>
+                <div id="login-error" class="text-[var(--quiz-red)] font-bold text-sm mb-4 hidden-view text-center bg-red-50 p-2 rounded-lg">Tài khoản hoặc mật khẩu không đúng!</div>
+                <button type="submit" class="w-full py-4 rounded-xl btn-purple btn-3d font-black text-lg">ĐĂNG NHẬP</button>
+            </form>
+            <div class="mt-6 text-sm text-center text-gray-400 font-bold">Mặc định: admin / admin123</div>
+        </div>
+    </div>
+
+    <!-- Student Join Modal -->
+    <div id="modal-join" class="fixed inset-0 bg-[var(--quiz-purple-dark)]/90 z-[100] flex items-center justify-center hidden-view backdrop-blur-sm">
+        <div class="white-panel p-6 md:p-8 w-full max-w-xl animate-fade-in mx-4 relative border-4 border-[var(--quiz-purple)] overflow-y-auto max-h-[90vh] custom-scrollbar">
+            <button onclick="app.closeModals()" class="absolute -top-4 -right-4 w-10 h-10 bg-[var(--quiz-red)] text-white rounded-full font-bold shadow-lg border-2 border-white hover:scale-110 transition"><i class="fas fa-times"></i></button>
+            
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-black text-[var(--quiz-purple-dark)] mb-2">Vào phòng thi</h2>
+                <p class="text-gray-500 font-bold">Hãy nhập thông tin để tham gia ngay!</p>
+            </div>
+            
+            <form id="form-join" onsubmit="app.handleJoin(event)">
+                <!-- Name -->
+                <div class="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <label class="block text-sm text-gray-500 mb-2 font-bold uppercase tracking-wider">Họ và tên / Mã SV</label>
+                    <input type="text" id="join-name" class="w-full bg-white border-2 border-gray-300 rounded-xl p-4 text-xl font-bold text-gray-800 focus:border-[var(--quiz-teal)] outline-none transition shadow-inner" placeholder="Nhập tên của bạn..." required autocomplete="off">
+                </div>
+
+                <!-- Avatar Selection -->
+                <div class="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="block text-sm text-gray-500 font-bold uppercase tracking-wider">Chọn Avatar</label>
+                        <button type="button" onclick="app.randomAvatar()" class="text-sm font-bold text-[var(--quiz-pink)] hover:text-pink-600 bg-pink-50 px-3 py-1 rounded-lg transition"><i class="fas fa-dice mr-1"></i> Ngẫu nhiên</button>
+                    </div>
+                    <div class="grid grid-cols-4 sm:grid-cols-6 gap-3" id="avatar-grid">
+                        <!-- Rendered via JS -->
+                    </div>
+                    <input type="hidden" id="join-avatar" required>
+                </div>
+
+                <!-- PIN -->
+                <div class="mb-8 bg-[var(--quiz-purple-dark)] p-6 rounded-2xl shadow-inner text-center">
+                    <label class="block text-sm text-white/80 mb-4 font-bold uppercase tracking-wider">Mã PIN phòng (6 số)</label>
+                    <div class="flex justify-center gap-2 sm:gap-4" id="pin-inputs">
+                        <input type="text" class="pin-input" maxlength="1" oninput="app.handlePinInput(event, 0)" onkeydown="app.handlePinKeydown(event, 0)" autocomplete="off">
+                        <input type="text" class="pin-input" maxlength="1" oninput="app.handlePinInput(event, 1)" onkeydown="app.handlePinKeydown(event, 1)" autocomplete="off">
+                        <input type="text" class="pin-input" maxlength="1" oninput="app.handlePinInput(event, 2)" onkeydown="app.handlePinKeydown(event, 2)" autocomplete="off">
+                        <input type="text" class="pin-input" maxlength="1" oninput="app.handlePinInput(event, 3)" onkeydown="app.handlePinKeydown(event, 3)" autocomplete="off">
+                        <input type="text" class="pin-input" maxlength="1" oninput="app.handlePinInput(event, 4)" onkeydown="app.handlePinKeydown(event, 4)" autocomplete="off">
+                        <input type="text" class="pin-input" maxlength="1" oninput="app.handlePinInput(event, 5)" onkeydown="app.handlePinKeydown(event, 5)" autocomplete="off">
+                    </div>
+                    <div id="join-error" class="text-[var(--quiz-yellow)] font-bold text-sm mt-4 hidden-view bg-black/30 py-2 rounded-lg inline-block px-4"><i class="fas fa-exclamation-triangle mr-1"></i> Mã PIN không chính xác!</div>
+                </div>
+
+                <button type="submit" class="w-full py-5 rounded-2xl btn-teal btn-3d font-black text-2xl uppercase tracking-wider text-gray-900">
+                    VÀO PHÒNG CHỜ
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        const QUESTIONS = [
+            {
+                q: "Giao thức nào dùng để truyền tải siêu văn bản trên Internet?",
+                options: ["FTP", "HTTP/HTTPS", "SMTP", "SSH"],
+                correct: 1
+            },
+            {
+                q: "Ngôn ngữ nào dưới đây ĐƯỢC dùng để tạo cấu trúc và nội dung cho trang Web?",
+                options: ["HTML", "CSS", "Python", "C++"],
+                correct: 0
+            },
+            {
+                q: "Trong JavaScript, từ khóa nào dùng để khai báo biến có thể gán lại giá trị?",
+                options: ["const", "let", "static", "final"],
+                correct: 1
+            },
+            {
+                q: "Hệ quản trị cơ sở dữ liệu nào dưới đây thuộc loại NoSQL?",
+                options: ["MySQL", "PostgreSQL", "MongoDB", "Oracle"],
+                correct: 2
+            },
+            {
+                q: "Đâu là một thư viện/framework UI của JavaScript?",
+                options: ["Django", "Laravel", "React", "Spring Boot"],
+                correct: 2
+            }
+        ];
+
+        const AVATARS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮'];
+
+        const AppState = {
+            currentUser: null, // null, 'host', or {id, name, avatar, score}
+            currentView: 'home',
+            
+            // Audio state
+            audioEnabled: false,
+
+            // Game loop state
+            gameInterval: null,
+            timerValue: 0,
+            currentQIndex: -1,
+            selectedAnswerIndex: -1,
+        };
+
+        const StorageKeys = {
+            PIN: 'quizgame_pin',
+            PLAYERS: 'quizgame_players',
+            STATE: 'quizgame_game_state',
+            SYNC_Q: 'quizgame_sync_q_index',
+        };
+
+        const app = {
+            init() {
+                this.renderHostQuestions();
+                this.renderAvatars();
+                window.addEventListener('storage', (e) => this.handleStorageEvent(e));
+                this.navigate('home');
+                
+                // Show audio button
+                document.getElementById('btn-audio-toggle').classList.remove('hidden-view');
+            },
+
+            // --- AUDIO & EFFECTS ---
+            toggleAudio() {
+                AppState.audioEnabled = !AppState.audioEnabled;
+                const audio = document.getElementById('lobby-audio');
+                const icon = document.getElementById('audio-icon');
+                
+                if (AppState.audioEnabled) {
+                    audio.volume = 0.3;
+                    audio.play().catch(e => {
+                        console.log("Audio autoplay blocked by browser");
+                        AppState.audioEnabled = false;
+                        icon.className = 'fas fa-volume-mute';
+                    });
+                    if(AppState.audioEnabled) icon.className = 'fas fa-volume-up';
+                } else {
+                    audio.pause();
+                    icon.className = 'fas fa-volume-mute';
+                }
+            },
+
+            triggerConfetti() {
+                const duration = 3000;
+                const end = Date.now() + duration;
+
+                (function frame() {
+                    confetti({
+                        particleCount: 5,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0 },
+                        colors: ['#00E5A3', '#FFD000', '#FF3385', '#2D9CDB']
+                    });
+                    confetti({
+                        particleCount: 5,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1 },
+                        colors: ['#00E5A3', '#FFD000', '#FF3385', '#2D9CDB']
+                    });
+
+                    if (Date.now() < end) {
+                        requestAnimationFrame(frame);
+                    }
+                }());
+            },
+
+
+            // --- NAVIGATION & UI ---
+            navigate(viewId) {
+                document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden-view'));
+                document.getElementById(`view-${viewId}`).classList.remove('hidden-view');
+                AppState.currentView = viewId;
+            },
+
+            closeModals() {
+                document.getElementById('modal-login').classList.add('hidden-view');
+                document.getElementById('modal-join').classList.add('hidden-view');
+                document.getElementById('join-error').classList.add('hidden-view');
+                document.getElementById('login-error').classList.add('hidden-view');
+                document.querySelectorAll('.pin-input').forEach(input => input.value = '');
+            },
+
+            showLoginModal() {
+                document.getElementById('modal-login').classList.remove('hidden-view');
+                document.getElementById('login-username').value = '';
+                document.getElementById('login-password').value = '';
+                document.getElementById('login-username').focus();
+            },
+
+            showJoinModal() {
+                document.getElementById('modal-join').classList.remove('hidden-view');
+                document.getElementById('join-name').value = '';
+                document.getElementById('join-name').focus();
+                this.randomAvatar();
+                document.querySelectorAll('.pin-input').forEach(input => input.value = '');
+                document.getElementById('join-error').classList.add('hidden-view');
+            },
+
+            // --- HOST FUNCTIONS ---
+            handleLogin(e) {
+                e.preventDefault();
+                const u = document.getElementById('login-username').value;
+                const p = document.getElementById('login-password').value;
+
+                if (u === 'admin' && p === 'admin123') {
+                    AppState.currentUser = 'host';
+                    this.closeModals();
+                    
+                    document.getElementById('btn-login-header').classList.add('hidden-view');
+                    document.getElementById('btn-logout-header').classList.remove('hidden-view');
+                    document.getElementById('host-name-display').innerText = '(GV: Phạm Ngọc Thái)';
+
+                    this.setupHostRoom();
+                    this.navigate('host-dashboard');
+                } else {
+                    document.getElementById('login-error').classList.remove('hidden-view');
+                }
+            },
+
+            logout() {
+                AppState.currentUser = null;
+                document.getElementById('btn-login-header').classList.remove('hidden-view');
+                document.getElementById('btn-logout-header').classList.add('hidden-view');
+                this.navigate('home');
+            },
+
+            setupHostRoom() {
+                localStorage.setItem(StorageKeys.PLAYERS, JSON.stringify([]));
+                localStorage.setItem(StorageKeys.STATE, 'waiting');
+                localStorage.setItem(StorageKeys.SYNC_Q, '-1');
+                this.generateNewPin();
+                this.updateHostLobbyUI();
+            },
+
+            generateNewPin() {
+                const pin = Math.floor(100000 + Math.random() * 900000).toString();
+                localStorage.setItem(StorageKeys.PIN, pin);
+                document.getElementById('host-pin-display').innerText = pin;
+            },
+
+            renderHostQuestions() {
+                const container = document.getElementById('host-questions-list');
+                document.getElementById('host-q-count').innerText = `${QUESTIONS.length} câu`;
+                
+                let html = '';
+                QUESTIONS.forEach((q, idx) => {
+                    html += `
+                        <div class="bg-white p-4 rounded-2xl border-2 border-gray-100 text-gray-800 shadow-sm">
+                            <h4 class="font-bold mb-3 text-lg text-[var(--quiz-purple-dark)]"><span class="bg-[var(--quiz-purple-dark)] text-white px-2 py-1 rounded-lg text-sm mr-2">Q${idx + 1}</span> ${q.q}</h4>
+                            <div class="grid grid-cols-2 gap-2 text-sm font-semibold">
+                                ${q.options.map((opt, oIdx) => `
+                                    <div class="px-3 py-2 rounded-xl flex items-center gap-2 ${oIdx === q.correct ? 'bg-[#e6fff7] text-[#00A676] border-2 border-[#00E5A3]' : 'bg-gray-100 text-gray-600 border-2 border-transparent'}">
+                                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white ${oIdx === q.correct ? 'bg-[#00E5A3]' : 'bg-gray-400'}">${String.fromCharCode(65 + oIdx)}</div>
+                                        ${opt}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            },
+
+            updateHostLobbyUI() {
+                if (AppState.currentUser !== 'host') return;
+                
+                const players = this.getPlayers();
+                document.getElementById('host-player-count').innerText = players.length;
+                
+                const startBtn = document.getElementById('host-start-btn');
+                if (players.length > 0) {
+                    startBtn.removeAttribute('disabled');
+                    startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    startBtn.setAttribute('disabled', 'true');
+                    startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+                const container = document.getElementById('host-tab-players');
+                if (players.length === 0) {
+                    container.innerHTML = `<div class="col-span-full text-center text-white/50 font-bold py-10 text-lg border-2 border-dashed border-white/20 rounded-2xl">Chưa có sinh viên nào tham gia.</div>`;
+                    return;
+                }
+
+                container.innerHTML = players.map((p, idx) => `
+                    <div class="lobby-card bg-white rounded-2xl p-4 flex flex-col items-center justify-center border-4 border-gray-100 shadow-lg text-gray-800" style="animation-delay: ${Math.min(idx * 0.05, 0.5)}s">
+                        <div class="text-5xl mb-2">${p.avatar}</div>
+                        <div class="text-sm font-black text-center truncate w-full uppercase">${p.name}</div>
+                    </div>
+                `).join('');
+            },
+
+            hostStartGame() {
+                localStorage.setItem(StorageKeys.STATE, 'playing');
+                const btn = document.getElementById('host-start-btn');
+                btn.innerText = "TRÒ CHƠI ĐANG DIỄN RA...";
+                btn.setAttribute('disabled', 'true');
+                btn.classList.remove('btn-teal');
+                btn.classList.add('btn-purple');
+            },
+
+
+            // --- STUDENT FUNCTIONS ---
+            renderAvatars() {
+                const container = document.getElementById('avatar-grid');
+                container.innerHTML = AVATARS.map((av, idx) => `
+                    <div class="avatar-option text-center flex items-center justify-center" onclick="app.selectAvatar(${idx})" id="avatar-opt-${idx}">
+                        ${av}
+                    </div>
+                `).join('');
+            },
+
+            selectAvatar(idx) {
+                document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+                document.getElementById(`avatar-opt-${idx}`).classList.add('selected');
+                document.getElementById('join-avatar').value = AVATARS[idx];
+            },
+
+            randomAvatar() {
+                const r = Math.floor(Math.random() * AVATARS.length);
+                this.selectAvatar(r);
+            },
+
+            handlePinInput(e, idx) {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                if (e.target.value && idx < 5) {
+                    const next = document.querySelectorAll('.pin-input')[idx + 1];
+                    if(next) next.focus();
+                }
+            },
+
+            handlePinKeydown(e, idx) {
+                if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+                    const prev = document.querySelectorAll('.pin-input')[idx - 1];
+                    if(prev) {
+                        prev.focus();
+                        prev.value = '';
+                    }
+                }
+            },
+
+            handleJoin(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('join-name').value.trim();
+                const avatar = document.getElementById('join-avatar').value;
+                
+                const inputs = document.querySelectorAll('.pin-input');
+                let enteredPin = '';
+                inputs.forEach(i => enteredPin += i.value);
+
+                const hostPin = (localStorage.getItem(StorageKeys.PIN) || '').toString().trim();
+
+                if (enteredPin.trim() === hostPin && enteredPin.length === 6) {
+                    const player = {
+                        id: 'STU_' + Date.now(),
+                        name: name,
+                        avatar: avatar,
+                        score: 0
+                    };
+                    AppState.currentUser = player;
+
+                    const players = this.getPlayers();
+                    players.push(player);
+                    localStorage.setItem(StorageKeys.PLAYERS, JSON.stringify(players));
+
+                    this.closeModals();
+                    this.setupStudentLobby();
+                    this.navigate('student-lobby');
+                    
+                    // Try play audio if not playing
+                    if(AppState.audioEnabled) {
+                        document.getElementById('lobby-audio').play().catch(e=>{});
+                    }
+                } else {
+                    document.getElementById('join-error').classList.remove('hidden-view');
+                    inputs.forEach(i => i.value = '');
+                    inputs[0].focus();
+                }
+            },
+
+            setupStudentLobby() {
+                document.getElementById('lobby-student-avatar').innerText = AppState.currentUser.avatar;
+                document.getElementById('lobby-student-name').innerText = AppState.currentUser.name;
+                this.updateStudentLobbyUI();
+            },
+
+            updateStudentLobbyUI() {
+                if (!AppState.currentUser || AppState.currentUser === 'host') return;
+                const players = this.getPlayers();
+                document.getElementById('lobby-player-count').innerText = players.length;
+                
+                const container = document.getElementById('lobby-players-grid');
+                const otherPlayers = players.filter(p => p.id !== AppState.currentUser.id);
+                
+                if (otherPlayers.length === 0) {
+                    container.innerHTML = `<div class="col-span-full text-center text-white/50 font-bold py-4">Chưa có bạn nào khác.</div>`;
+                    return;
+                }
+
+                container.innerHTML = otherPlayers.map((p, idx) => `
+                    <div class="lobby-card bg-white/10 rounded-2xl p-3 flex flex-col items-center justify-center border border-white/20" style="animation-delay: ${Math.min(idx * 0.1, 1)}s">
+                        <div class="text-4xl mb-1">${p.avatar}</div>
+                        <div class="text-xs font-bold text-center truncate w-full uppercase text-white">${p.name}</div>
+                    </div>
+                `).join('');
+            },
+
+
+            // --- GAME ENGINE (STUDENT SIDE) ---
+            startCountdown() {
+                // Stop lobby music
+                document.getElementById('lobby-audio').pause();
+                
+                this.navigate('game-countdown');
+                let count = 3;
+                const el = document.getElementById('game-countdown-number');
+                el.innerText = count;
+                el.className = "text-[200px] font-black text-[var(--quiz-yellow)] drop-shadow-[0_10px_0_#CC9900] animate-bounce";
+                
+                const intv = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        el.innerText = count;
+                        // Change color per tick
+                        if(count===2) el.className = "text-[200px] font-black text-[var(--quiz-teal)] drop-shadow-[0_10px_0_#00A676] animate-bounce";
+                        if(count===1) el.className = "text-[200px] font-black text-[var(--quiz-pink)] drop-shadow-[0_10px_0_#CC0055] animate-bounce";
+                    } else {
+                        clearInterval(intv);
+                        this.startGameFlow();
+                    }
+                }, 1000);
+            },
+
+            startGameFlow() {
+                AppState.currentQIndex = 0;
+                this.showQuestion();
+            },
+
+            showQuestion() {
+                if (AppState.currentQIndex >= QUESTIONS.length) {
+                    this.showFinalLeaderboard();
+                    return;
+                }
+
+                AppState.selectedAnswerIndex = -1;
+                this.navigate('game');
+                const q = QUESTIONS[AppState.currentQIndex];
+                
+                document.getElementById('game-q-current').innerText = AppState.currentQIndex + 1;
+                document.getElementById('game-q-total').innerText = QUESTIONS.length;
+                document.getElementById('game-player-avatar').innerText = AppState.currentUser.avatar;
+                document.getElementById('game-player-name').innerText = AppState.currentUser.name;
+                document.getElementById('game-player-score').innerText = AppState.currentUser.score;
+
+                document.getElementById('game-question-text').innerText = q.q;
+                
+                const grid = document.getElementById('game-answers-grid');
+                grid.innerHTML = q.options.map((opt, idx) => `
+                    <button class="answer-btn ans-${idx} btn-3d" onclick="app.selectAnswer(${idx})" id="ans-btn-${idx}">
+                        <div class="absolute left-4 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 flex items-center justify-center font-black">
+                            ${String.fromCharCode(65 + idx)}
+                        </div>
+                        <span class="pl-8 text-center w-full block">${opt}</span>
+                    </button>
+                `).join('');
+
+                const fb = document.getElementById('game-feedback');
+                fb.classList.add('hidden-view');
+                fb.classList.remove('opacity-100');
+                fb.classList.add('opacity-0');
+
+                AppState.timerValue = 15;
+                this.updateTimerUI();
+                
+                if (AppState.gameInterval) clearInterval(AppState.gameInterval);
+                AppState.gameInterval = setInterval(() => {
+                    AppState.timerValue--;
+                    this.updateTimerUI();
+                    if (AppState.timerValue <= 0) {
+                        clearInterval(AppState.gameInterval);
+                        this.handleTimeOut();
+                    }
+                }, 1000);
+            },
+
+            updateTimerUI() {
+                document.getElementById('game-timer-text').innerText = AppState.timerValue;
+                const bar = document.getElementById('game-timer-bar');
+                const pct = (AppState.timerValue / 15) * 100;
+                bar.style.width = `${pct}%`;
+                
+                if (AppState.timerValue <= 5) {
+                    bar.classList.add('warning');
+                } else {
+                    bar.classList.remove('warning');
+                }
+            },
+
+            selectAnswer(idx) {
+                if (AppState.selectedAnswerIndex !== -1) return;
+                clearInterval(AppState.gameInterval);
+                
+                // Freeze timer bar
+                const bar = document.getElementById('game-timer-bar');
+                bar.style.transition = 'none';
+                
+                AppState.selectedAnswerIndex = idx;
+                document.querySelectorAll('.answer-btn').forEach(btn => btn.disabled = true);
+                
+                this.gradeAnswer();
+            },
+
+            handleTimeOut() {
+                if (AppState.selectedAnswerIndex !== -1) return;
+                document.querySelectorAll('.answer-btn').forEach(btn => btn.disabled = true);
+                this.gradeAnswer(true);
+            },
+
+            gradeAnswer(isTimeout = false) {
+                const q = QUESTIONS[AppState.currentQIndex];
+                const isCorrect = !isTimeout && AppState.selectedAnswerIndex === q.correct;
+                
+                let pointsEarned = 0;
+                if (isCorrect) {
+                    pointsEarned = 500 + Math.floor((AppState.timerValue / 15) * 500);
+                    AppState.currentUser.score += pointsEarned;
+                    this.updateScoreInStorage();
+                    this.triggerConfetti();
+                }
+
+                const btns = document.querySelectorAll('.answer-btn');
+                btns.forEach((btn, idx) => {
+                    if (idx === q.correct) {
+                        btn.classList.add('correct-show');
+                    } else if (idx === AppState.selectedAnswerIndex && !isCorrect) {
+                        btn.classList.add('wrong-show');
+                    }
+                });
+
+                const fb = document.getElementById('game-feedback');
+                const fbContent = document.getElementById('game-feedback-content');
+                const fbIcon = document.getElementById('game-feedback-icon');
+                const fbText = document.getElementById('game-feedback-text');
+                const fbPts = document.getElementById('game-feedback-points');
+
+                fb.classList.remove('hidden-view');
+                void fb.offsetWidth;
+                fb.classList.remove('opacity-0');
+                fb.classList.add('opacity-100');
+                fbContent.classList.remove('scale-50');
+                fbContent.classList.add('scale-100');
+
+                if (isTimeout) {
+                    fbIcon.innerText = '⏰';
+                    fbText.innerText = 'Hết thời gian!';
+                    fbText.className = 'text-4xl md:text-5xl font-black mb-2 uppercase text-gray-500';
+                    fbPts.innerText = '+0';
+                    fbPts.className = 'text-3xl font-bold bg-gray-100 text-gray-500 inline-block px-6 py-2 rounded-full mt-2';
+                } else if (isCorrect) {
+                    fbIcon.innerText = '🎉';
+                    fbText.innerText = 'Chính xác!';
+                    fbText.className = 'text-4xl md:text-5xl font-black mb-2 uppercase text-[var(--quiz-green)]';
+                    fbPts.innerText = `+${pointsEarned}`;
+                    fbPts.className = 'text-3xl font-bold bg-[#e6fff7] text-[var(--quiz-green)] inline-block px-6 py-2 rounded-full mt-2 border-2 border-[var(--quiz-green)]';
+                } else {
+                    fbIcon.innerText = '❌';
+                    fbText.innerText = 'Sai rồi!';
+                    fbText.className = 'text-4xl md:text-5xl font-black mb-2 uppercase text-[var(--quiz-red)]';
+                    fbPts.innerText = '+0';
+                    fbPts.className = 'text-3xl font-bold bg-red-50 text-[var(--quiz-red)] inline-block px-6 py-2 rounded-full mt-2';
+                }
+
+                setTimeout(() => {
+                    this.showLeaderboard(false);
+                }, 2000);
+            },
+
+            showLeaderboard(isFinal = false) {
+                this.navigate('leaderboard');
+                const players = this.getPlayers().sort((a, b) => b.score - a.score).slice(0, 5);
+                
+                const list = document.getElementById('lb-list');
+                if (players.length === 0) {
+                    list.innerHTML = `<div class="text-center text-gray-500 font-bold py-10">Chưa có dữ liệu</div>`;
+                } else {
+                    list.innerHTML = players.map((p, idx) => {
+                        let rankStyle = '';
+                        let medal = '';
+                        if (idx === 0) { rankStyle = 'bg-[#FFD000] text-black shadow-[0_4px_0_0_#CC9900]'; medal = '👑'; }
+                        else if (idx === 1) { rankStyle = 'bg-gray-300 text-black shadow-[0_4px_0_0_#A0A0A0]'; medal = '🥈'; }
+                        else if (idx === 2) { rankStyle = 'bg-[#cd7f32] text-white shadow-[0_4px_0_0_#8A5A21]'; medal = '🥉'; }
+                        else { rankStyle = 'bg-gray-100 text-gray-600'; medal = `${idx + 1}`; }
+
+                        const isMe = AppState.currentUser && p.id === AppState.currentUser.id;
+                        
+                        if (isFinal && isMe && idx === 0) {
+                            this.triggerConfetti();
+                        }
+
+                        return `
+                            <div class="flex items-center justify-between p-3 sm:p-4 rounded-2xl border-2 ${isMe ? 'border-[var(--quiz-teal)] bg-[#e6fff7]' : 'border-gray-100 bg-white'} shadow-sm relative overflow-hidden transition-transform hover:scale-[1.02]">
+                                ${isMe ? '<div class="absolute top-0 left-0 w-1 h-full bg-[var(--quiz-teal)]"></div>' : ''}
+                                <div class="flex items-center gap-3 sm:gap-5">
+                                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center font-black text-xl sm:text-2xl ${rankStyle}">${medal}</div>
+                                    <div class="text-4xl sm:text-5xl">${p.avatar}</div>
+                                    <div class="font-black text-lg sm:text-2xl text-gray-800 uppercase">${p.name} ${isMe ? '<span class="text-[var(--quiz-teal)] text-sm ml-2">(Bạn)</span>' : ''}</div>
+                                </div>
+                                <div class="font-black text-2xl sm:text-3xl text-[var(--quiz-purple-dark)] bg-gray-100 px-4 py-2 rounded-xl border-2 border-gray-200">${p.score}</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                if (!isFinal) {
+                    document.getElementById('lb-subtitle').innerText = "Top 5 Sinh viên xuất sắc nhất";
+                    document.getElementById('lb-next-info').classList.remove('hidden-view');
+                    document.getElementById('lb-final-info').classList.add('hidden-view');
+                    
+                    let lbTimer = 3;
+                    const timerEl = document.getElementById('lb-timer');
+                    timerEl.innerText = lbTimer;
+                    
+                    if(AppState.gameInterval) clearInterval(AppState.gameInterval);
+                    AppState.gameInterval = setInterval(() => {
+                        lbTimer--;
+                        if (lbTimer > 0) {
+                            timerEl.innerText = lbTimer;
+                        } else {
+                            clearInterval(AppState.gameInterval);
+                            AppState.currentQIndex++;
+                            this.showQuestion();
+                        }
+                    }, 1000);
+                } else {
+                    document.getElementById('lb-subtitle').innerText = "KẾT QUẢ CHUNG CUỘC";
+                    document.getElementById('lb-next-info').classList.add('hidden-view');
+                    document.getElementById('lb-final-info').classList.remove('hidden-view');
+                    this.triggerConfetti();
+                }
+            },
+
+            showFinalLeaderboard() {
+                this.showLeaderboard(true);
+            },
+
+            exitGame() {
+                AppState.currentUser = null;
+                this.navigate('home');
+            },
+
+
+            // --- UTILS & SYNC ---
+            getPlayers() {
+                try {
+                    const str = localStorage.getItem(StorageKeys.PLAYERS);
+                    return str ? JSON.parse(str) : [];
+                } catch(e) {
+                    return [];
+                }
+            },
+
+            updateScoreInStorage() {
+                if (!AppState.currentUser || AppState.currentUser === 'host') return;
+                
+                const players = this.getPlayers();
+                const idx = players.findIndex(p => p.id === AppState.currentUser.id);
+                if (idx !== -1) {
+                    players[idx].score = AppState.currentUser.score;
+                    localStorage.setItem(StorageKeys.PLAYERS, JSON.stringify(players));
+                }
+            },
+
+            handleStorageEvent(e) {
+                if (e.key === StorageKeys.PLAYERS) {
+                    if (AppState.currentView === 'host-dashboard') {
+                        this.updateHostLobbyUI();
+                    } else if (AppState.currentView === 'student-lobby') {
+                        this.updateStudentLobbyUI();
+                    }
+                }
+
+                if (e.key === StorageKeys.STATE && e.newValue === 'playing') {
+                    if (AppState.currentUser && AppState.currentUser !== 'host' && AppState.currentView === 'student-lobby') {
+                        this.startCountdown();
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+
+    </script>
+</body>
+</html>
